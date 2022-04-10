@@ -1,6 +1,11 @@
 const express = require('express');
 const app = express();
 const port = 5001;
+const cors = require('cors');
+const e = require('express');
+
+app.use(cors());
+app.use(express.json());
 
 const users = { 
   users_list :
@@ -32,10 +37,6 @@ const users = {
      }
   ]
 }
-
-const cors = require('cors');
-app.use(cors());
-app.use(express.json());
 
 app.get('/users/:id', (req, res) => {
   const id = req.params['id']; //or req.params.id
@@ -69,6 +70,57 @@ app.get('/users', (req, res) => {
   }
 });
 
+app.listen(port, () => {
+    console.log(`Example app listening at http://localhost:${port}`);
+});   
+
+app.delete('/users', (req, res) => {
+  const userToDelete = req.body;
+  const found = deleteUser(userToDelete);
+  if (found) {
+    res.status(204).end();
+  } else {
+    res.status(404).end();
+  }
+});
+
+app.delete('/users/:id', (req, res) => {
+  const id = req.params['id'];
+  const found = deleteUser({id: id});
+  if (found) {
+    res.status(204).end();
+  } else {
+    res.status(404).end();
+  }
+});
+
+app.post('/users', (req, res) => {
+  let user = req.body;
+  if (user.id === "" || user.id == undefined) {
+    let newid = "";
+    do {
+      newid = Math.floor(Math.random() * 100000).toString();
+    }
+    while ((users['users_list'].find((obj) => obj.name === newid)) != undefined);
+    user = {id: newid, name: user.name, job: user.job};
+  }
+  addUser(user);
+  res.status(201).send(user).end();
+});
+
+function addUser(user){
+  users['users_list'].push(user);
+}
+
+function deleteUser(user) {
+  const sizeBefore = users['users_list'].length;
+  users['users_list'] = users['users_list'].filter( (item) => item['id'] !== user['id']);
+  const sizeAfter = users['users_list'].length;
+  if (sizeBefore === sizeAfter) {
+    return false;
+  }
+  return true;
+}
 
 function findUserByNameAndJob(name, job) {
   return users['users_list'].find( (user) => ((user['job'] === job) && (user['name'] === name)));
@@ -85,29 +137,4 @@ const findUserByName = (name) => {
 
 const findUserByJob = (job) => { 
   return users['users_list'].filter( (user) => user['job'] === job); 
-}
-
-app.listen(port, () => {
-    console.log(`Example app listening at http://localhost:${port}`);
-});   
-
-app.post('/users', (req, res) => {
-  const userToAdd = req.body;
-  addUser(userToAdd);
-  res.status(200).end();
-});
-
-function addUser(user){
-  users['users_list'].push(user);
-}
-
-app.delete('/users', (req, res) => {
-  const userToDelete = req.body;
-  console.log(userToDelete);
-  deleteUser(userToDelete);
-  res.status(204).end();
-});
-
-function deleteUser(user) {
-  users['users_list'] = users['users_list'].filter( (item) => item['id'] !== user['id']);
 }
